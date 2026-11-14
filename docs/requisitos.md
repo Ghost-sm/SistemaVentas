@@ -96,3 +96,13 @@ Este documento se redactó con apoyo de un asistente de IA (Claude) a partir del
 3. **Corregimos el estado de la API REST de ventas y de la sugerencia de reposición.** El README dice que están implementadas, pero en el código del repositorio todavía no existen (`routes/api.php` solo tiene la ruta por defecto). La HU-08 queda como **Pendiente** y el README se corregirá en el backlog.
 4. **Cambiamos los requisitos no funcionales del documento original por versiones medibles.** Por ejemplo, "disponible el 99.9 % del tiempo" no se puede comprobar en un plan gratuito de despliegue; lo reemplazamos por "la URL responde durante toda la sustentación" (RNF-03).
 5. **Dejamos por fuera los fiados y las cuentas por cobrar.** Son importantes para la tienda, pero no están implementados y quedan marcados como *Won't* en el tablero de esta semana.
+
+
+## Seguimiento del proyecto
+
+Las historias y tareas se gestionan en GitHub Projects, en el tablero **SistemaVentas BRYSA - Módulo 6** (columnas Por hacer, En progreso, En revisión y Hecho):
+
+- Tablero: https://github.com/users/CarolGonzalez0516/projects/1
+- Issues priorizados con MoSCoW y sesión: https://github.com/Ghost-sm/SistemaVentas/issues
+
+El tablero está en la cuenta de una integrante del equipo porque el repositorio pertenece a una cuenta personal; por eso se enlaza aquí.
