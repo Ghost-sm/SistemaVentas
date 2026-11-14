@@ -5,7 +5,7 @@ Autores: Carol Dahiana González Ceballos y Santiago Mejía Londoño · 14 de no
 
 Este documento describe la arquitectura **tal como está hoy en el código** del repositorio. Lo que todavía no existe se marca como *planeado* y se enlaza con su issue.
 
-Decisiones de arquitectura:
+Decisiones de arquitectura: 
 
 - [ADR-001: Laravel 12 con PHP 8.2 como stack](adr/ADR-001-stack-laravel.md)
 - [ADR-002: MySQL como base de datos](adr/ADR-002-base-de-datos-mysql.md)
