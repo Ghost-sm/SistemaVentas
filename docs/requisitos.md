@@ -87,16 +87,6 @@ Estado: **Pendiente** (sesión S4)
 | RNF-03 | Disponibilidad | La URL pública del despliegue responde (código 200 en la página de inicio de sesión) durante toda la sustentación. | Verificación antes y durante la demo |
 | RNF-04 | Calidad | El workflow de GitHub Actions ejecuta todas las pruebas automatizadas en cada push a `main` y termina en verde. | Pestaña Actions del repositorio |
 
-## Cambios frente a la IA
-
-Este documento se redactó con apoyo de un asistente de IA (Claude) a partir del documento de historias de usuario del proyecto (HU-001 a HU-024), el README y la revisión del código del repositorio. Le pedimos actuar como analista de requisitos, escribir máximo 8 historias con 2 o 3 criterios Dado/Cuando/Entonces, 4 requisitos no funcionales medibles, y marcar como "PROPUESTA" lo que no estuviera en el proyecto. Estos son los cambios que hicimos sobre lo que propuso:
-
-1. **Quitamos la historia de pago con varios métodos (HU-009 del documento original).** Estaba en los requisitos iniciales, pero el punto de venta actual no permite dividir un pago entre efectivo y tarjeta. No es parte del alcance de esta semana.
-2. **Quitamos las devoluciones y notas de crédito (HU-010).** El sistema no permite editar ni eliminar ventas, y agregar devoluciones implica cambios en inventario, kardex y caja que no alcanzan en cinco sesiones.
-3. **Corregimos el estado de la API REST de ventas y de la sugerencia de reposición.** El README dice que están implementadas, pero en el código del repositorio todavía no existen (`routes/api.php` solo tiene la ruta por defecto). La HU-08 queda como **Pendiente** y el README se corregirá en el backlog.
-4. **Cambiamos los requisitos no funcionales del documento original por versiones medibles.** Por ejemplo, "disponible el 99.9 % del tiempo" no se puede comprobar en un plan gratuito de despliegue; lo reemplazamos por "la URL responde durante toda la sustentación" (RNF-03).
-5. **Dejamos por fuera los fiados y las cuentas por cobrar.** Son importantes para la tienda, pero no están implementados y quedan marcados como *Won't* en el tablero de esta semana.
-
 
 ## Seguimiento del proyecto
 
