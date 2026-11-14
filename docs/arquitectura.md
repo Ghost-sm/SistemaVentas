@@ -3,9 +3,9 @@
 **Proyecto integrador · Módulo 6 · Sesión 2**
 Autores: Carol Dahiana González Ceballos y Santiago Mejía Londoño · 14 de noviembre de 2026
 
-Este documento describe la arquitectura **tal como está hoy en el código** del repositorio. Lo que todavía no existe se marca como *planeado* y se enlaza con su issue.
+Este documento describe la arquitectura **tal como está hoy en el código** del repositorio: cada elemento de los diagramas corresponde a un archivo, una dependencia o una configuración que existe en el proyecto.
 
-Decisiones de arquitectura: 
+Decisiones de arquitectura:
 
 - [ADR-001: Laravel 12 con PHP 8.2 como stack](adr/ADR-001-stack-laravel.md)
 - [ADR-002: MySQL como base de datos](adr/ADR-002-base-de-datos-mysql.md)
@@ -23,13 +23,11 @@ flowchart LR
     SIS["Sistema BRYSA<br/>[Sistema de software]<br/>Ventas, compras, inventario, kardex y caja"]
 
     MAIL["Servidor de correo SMTP<br/>[Sistema externo]<br/>Envía el comprobante al cliente"]
-    LLM["Proveedor de LLM<br/>[Sistema externo · planeado]<br/>Redacta la sugerencia de reposición (HU-08)"]
 
-    ADM -->|"Usa por navegador (HTTPS)"| SIS
-    CAJ -->|"Usa por navegador (HTTPS)"| SIS
-    INV -->|"Usa por navegador (HTTPS)"| SIS
+    ADM -->|"Usa por navegador (HTTP)"| SIS
+    CAJ -->|"Usa por navegador (HTTP)"| SIS
+    INV -->|"Usa por navegador (HTTP)"| SIS
     SIS -->|"Envía comprobante (SMTP)"| MAIL
-    SIS -.->|"Pide explicación (HTTPS + llave) · planeado"| LLM
 ```
 
 ## 2. Diagrama de contenedores (C4 nivel 2)
@@ -41,28 +39,26 @@ flowchart TB
     U["Usuarios<br/>(administrador, cajero, inventario)"]
 
     subgraph BRYSA["Sistema BRYSA"]
-        WEB["Aplicación web Laravel<br/>[PHP 8.2 · Laravel 12]<br/>Controladores, vistas Blade (SB Admin + Bootstrap 5),<br/>Spatie Permission, DomPDF, Laravel Excel"]
-        WORKER["Worker de colas<br/>[php artisan queue:work]<br/>Envía comprobantes y exporta Excel en segundo plano"]
+        WEB["Aplicación web Laravel<br/>[PHP 8.2+ · Laravel 12]<br/>Controladores, vistas Blade (SB Admin + Bootstrap 5),<br/>Spatie Permission, DomPDF, Laravel Excel"]
+        WORKER["Worker de colas<br/>[run-worker.sh · php artisan queue:work]<br/>Envía comprobantes y exporta Excel"]
         DB[("Base de datos<br/>[MySQL 8]<br/>Ventas, compras, inventario, kardex, cajas, usuarios")]
         FILES[("Almacenamiento de archivos<br/>[disco public de Laravel]<br/>Imágenes de productos y comprobantes")]
     end
 
     MAIL["Servidor SMTP<br/>[externo]"]
-    LLM["Proveedor de LLM<br/>[externo · planeado HU-08]"]
 
-    U -->|"HTTPS · HTML, formularios y JS"| WEB
+    U -->|"HTTP · HTML, formularios y JS"| WEB
     WEB -->|"SQL sobre TCP 3306 (Eloquent)"| DB
     WEB -->|"Lee y escribe archivos"| FILES
     WEB -->|"Encola trabajos (tabla jobs)"| DB
     WORKER -->|"Toma trabajos (SQL)"| DB
     WORKER -->|"SMTP"| MAIL
-    WEB -.->|"HTTPS + llave en .env · planeado"| LLM
 ```
 
 | Contenedor | Tecnología | Responsabilidad |
 |---|---|---|
 | Aplicación web | PHP 8.2, Laravel 12, Blade, Bootstrap 5 | Pantallas, validación (Form Requests), reglas de negocio, roles y permisos |
-| Worker de colas | `php artisan queue:work` (`run-worker.sh`) | Trabajos `EnviarComprobanteVentaJob` y `DownloadExcelVentasAllJob` |
+| Worker de colas | `php artisan queue:work` (`run-worker.sh`) | Trabajos `EnviarComprobanteVentaJob` y `DownloadExcelVentasAllJob`. Con `QUEUE_CONNECTION=sync` (valor de `.env.example`) se ejecutan en el mismo proceso web |
 | Base de datos | MySQL 8 | Persistencia transaccional de todas las operaciones |
 | Archivos | Disco `public` de Laravel | Imágenes de productos y empleados, comprobantes de compra |
 
@@ -195,7 +191,7 @@ sequenceDiagram
     participant Q as Cola (worker)
 
     C->>N: Agrega productos y confirma
-    N->>MW: POST /ventas (HTTPS, formulario + token CSRF)
+    N->>MW: POST /admin/ventas (formulario + token CSRF)
     MW->>MW: ¿Sesión, permiso y caja abierta?
     alt No cumple
         MW-->>N: 403 o redirección
@@ -217,45 +213,25 @@ sequenceDiagram
 
 ## 5. Despliegue
 
-**Hoy:** el sistema corre en local con Laravel Sail (Docker Compose: `compose.yaml`).
-**Meta (issue #11):** URL pública en Railway. El repositorio ya tiene `railpack.json` (PHP 8.2) y ramas `railway/fix-deploy-*`, pero el último despliegue registrado en GitHub falló.
+El proyecto se ejecuta con **Laravel Sail** (Docker Compose, archivo `compose.yaml`): un contenedor para la aplicación y otro para MySQL. Cada push a `main` ejecuta las pruebas en **GitHub Actions** (`.github/workflows/test.yml`).
 
 ```mermaid
 flowchart LR
-    subgraph LOCAL["Desarrollo local · Laravel Sail (Docker Compose)"]
+    DEV["Equipo de desarrollo"] -->|"git push"| GH["GitHub<br/>Ghost-sm/SistemaVentas"]
+    GH -->|"push a main"| CI["GitHub Actions<br/>test.yml · PHP 8.2 · phpunit"]
+
+    subgraph LOCAL["Laravel Sail · Docker Compose (compose.yaml)"]
         direction TB
-        APPL["Contenedor laravel.test<br/>PHP 8.x · puerto 80"]
-        DBL[("Contenedor mysql<br/>MySQL 8.4 · puerto 3306<br/>volumen sail-mysql")]
+        APPL["Contenedor laravel.test<br/>imagen sail-8.5/app · puerto 80"]
+        DBL[("Contenedor mysql<br/>mysql:8.4 · puerto 3306<br/>volumen sail-mysql")]
         APPL -->|"TCP 3306"| DBL
     end
 
-    subgraph RAIL["Producción · Railway (planeado, issue #11)"]
-        direction TB
-        APPR["Servicio web<br/>Railpack · PHP 8.2"]
-        WRK["Servicio worker<br/>run-worker.sh · queue:work"]
-        DBR[("MySQL administrado<br/>de Railway")]
-        APPR -->|"TCP privado"| DBR
-        WRK -->|"TCP privado"| DBR
-    end
-
-    DEV["Equipo de desarrollo"] -->|"git push"| GH["GitHub<br/>Ghost-sm/SistemaVentas"]
-    GH -->|"Despliegue automático"| RAIL
-    GH -->|"GitHub Actions: pruebas"| CI["CI"]
-    USR["Usuarios de la tienda"] -->|"HTTPS"| APPR
-    DEV -->|"http://localhost"| APPL
+    USR["Usuarios (navegador)"] -->|"HTTP · puerto 80"| APPL
+    DEV -->|"sail up"| LOCAL
 ```
 
-| Ambiente | Dónde | Variables sensibles |
+| Pieza | Archivo en el repositorio | Variables sensibles |
 |---|---|---|
-| Local | Docker Compose (Sail) | `.env` local, fuera del repositorio |
-| Producción (planeado) | Railway | Variables del servicio en Railway (`APP_KEY`, `DB_*`, `MAIL_*`, llave del LLM) |
-
-## 6. Correcciones frente a la IA
-
-Los diagramas se generaron con un asistente de IA a partir de los documentos del proyecto (informe de arquitectura del Módulo 2, informe del MVP del Módulo 3, documento de despliegue y README) y luego se compararon con el código del repositorio. Lo que no coincidía se corrigió así:
-
-1. **API REST:** los documentos anteriores y el README describen una API REST de ventas con Sanctum. En el código no existe (`routes/api.php` solo tiene `/user`). Se dibujó como monolito MVC.
-2. **Servicio de analítica en Python y LLM:** venían de la propuesta del Módulo 2, pero no están en el repositorio. Se dejaron solo como *planeado* (HU-08, issue #10) con línea punteada.
-3. **Servidor Node.js:** el documento de despliegue anterior hablaba de un servidor Node.js. El backend es PHP/Laravel; Node solo se usa para Vite al desarrollar.
-4. **Correo y colas:** no aparecían en los diagramas anteriores, pero existen en el código (`EnviarComprobanteVentaJob`, `run-worker.sh`), así que se agregaron el worker y el servidor SMTP.
-5. **Fiados y devoluciones:** estaban en la formulación del proyecto, pero no hay tablas para ellos; no aparecen en el modelo de datos.
+| Aplicación y base de datos | `compose.yaml` | `.env` local, fuera del repositorio (`APP_KEY`, `DB_*`, `MAIL_*`) |
+| Pruebas automáticas | `.github/workflows/test.yml` | Ninguna; usa `.env.example` |
