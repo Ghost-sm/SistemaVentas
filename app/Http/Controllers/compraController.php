@@ -79,13 +79,13 @@ class compraController extends Controller
         try {
 
             //Llenar tabla compras
+            //Solo se guardan los campos validados, no todo lo que llega en la petición
             $compra = new Compra();
-            $request->merge([
-                'comprobante_path' => isset($request->file_comprobante)
-                    ? $compra->handleUploadFile($request->file_comprobante)
-                    : null
-            ]);
-            $compra = Compra::create($request->all());
+            $datosCompra = $request->safe()->except(['file_comprobante']);
+            $datosCompra['comprobante_path'] = $request->hasFile('file_comprobante')
+                ? $compra->handleUploadFile($request->file('file_comprobante'))
+                : null;
+            $compra = Compra::create($datosCompra);
 
             //Llenar tabla compra_producto
             //1.Recuperar los arrays
@@ -119,7 +119,7 @@ class compraController extends Controller
             }
 
             DB::commit();
-            ActivityLogService::log('Creación de compra', 'Compras', $request->all());
+            ActivityLogService::log('Creación de compra', 'Compras', $datosCompra);
             return redirect()->route('compras.index')->with('success', 'compra exitosa');
         } catch (Throwable $e) {
             DB::rollBack();

@@ -31,7 +31,13 @@ class StoreVentaRequest extends FormRequest
             'impuesto' => 'required|numeric',
             'total' => 'required|numeric',
             'monto_recibido' => 'required|numeric|min:1',
-            'vuelto_entregado' => 'required|numeric|min:0'
+            'vuelto_entregado' => 'required|numeric|min:0',
+            'arrayidproducto' => 'required|array|min:1',
+            'arrayidproducto.*' => 'required|integer|exists:productos,id',
+            'arraycantidad' => ['required', 'array', 'size:' . count((array) $this->input('arrayidproducto', []))],
+            'arraycantidad.*' => 'required|integer|min:1',
+            'arrayprecioventa' => ['required', 'array', 'size:' . count((array) $this->input('arrayidproducto', []))],
+            'arrayprecioventa.*' => 'required|numeric|min:0'
         ];
     }
 }

@@ -103,27 +103,19 @@ class ventaController extends Controller
             $arrayCantidad = $request->get('arraycantidad');
             $arrayPrecioVenta = $request->get('arrayprecioventa');
 
-            //2.Realizar el llenado
-            $siseArray = count($arrayProducto_id);
-            $cont = 0;
+            //2.Realizar el llenado (un registro y un evento por producto)
+            foreach ($arrayProducto_id as $indice => $productoId) {
+                $cantidad = $arrayCantidad[$indice];
+                $precioVenta = $arrayPrecioVenta[$indice];
 
-            while ($cont < $siseArray) {
                 $venta->productos()->syncWithoutDetaching([
-                    $arrayProducto_id[$cont] => [
-                        'cantidad' => $arrayCantidad[$cont],
-                        'precio_venta' => $arrayPrecioVenta[$cont],
+                    $productoId => [
+                        'cantidad' => $cantidad,
+                        'precio_venta' => $precioVenta,
                     ]
                 ]);
 
-                //Despachar evento
-                CreateVentaDetalleEvent::dispatch(
-                    $venta,
-                    $arrayProducto_id[$cont],
-                    $arrayCantidad[$cont],
-                    $arrayPrecioVenta[$cont]
-                );
-
-                $cont++;
+                CreateVentaDetalleEvent::dispatch($venta, $productoId, $cantidad, $precioVenta);
             }
 
             //Despachar evento

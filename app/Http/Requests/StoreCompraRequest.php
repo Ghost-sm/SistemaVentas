@@ -32,7 +32,15 @@ class StoreCompraRequest extends FormRequest
             'fecha_hora' => 'required|date|date_format:Y-m-d\TH:i',
             'subtotal' => 'required|min:1',
             'impuesto' => 'required|min:0',
-            'total' => 'required|min:1'
+            'total' => 'required|min:1',
+            'arrayidproducto' => 'required|array|min:1',
+            'arrayidproducto.*' => 'required|integer|exists:productos,id',
+            'arraycantidad' => ['required', 'array', 'size:' . count((array) $this->input('arrayidproducto', []))],
+            'arraycantidad.*' => 'required|integer|min:1',
+            'arraypreciocompra' => ['required', 'array', 'size:' . count((array) $this->input('arrayidproducto', []))],
+            'arraypreciocompra.*' => 'required|numeric|min:0',
+            'arrayfechavencimiento' => 'nullable|array',
+            'arrayfechavencimiento.*' => 'nullable|date'
         ];
     }
 }
